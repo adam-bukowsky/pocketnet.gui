@@ -427,19 +427,15 @@ function createWindow() {
 	})
 
     var refresh = function(){
-        win.reload()
-
         var ps = {}
 
         if (currenturl){
             ps.search = 'path=' + hexEncode(currenturl)
         }
 
-
         win.loadFile('index_el.html', ps).then(r => {
             win.webContents.clearHistory()
         })
-
     }
 
     ipcMain.on('electron-refresh', function(e, p) {
