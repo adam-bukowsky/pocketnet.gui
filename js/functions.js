@@ -8999,6 +8999,12 @@ parseVideo = function(url) {
 	let host_name = null;
 	let subType = null;
 
+	if (url.startsWith('ipfs:')) {
+		type = 'ipfs';
+		id = url.replace('ipfs://', '').replace('ipfs:', '');
+		return { type, url, id, host_name: null, subType: null };
+	}
+
 	if (url.startsWith('peertube:')) {
 		type = 'peertube';
 		url = url.replace('peertube:', 'http:');

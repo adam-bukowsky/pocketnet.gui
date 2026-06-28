@@ -38,6 +38,7 @@ var Transports = require("./transports")
 var Applications = require('./node/applications');
 var bitcoin = require('./lib/btc16.js');
 var Slidemodule = require("./slidemodule")
+var Ipfs = require('./ipfs.js');
 const Path = require("path");
 const child_process = require("child_process");
 
@@ -74,6 +75,7 @@ var Proxy = function (settings, manage, test, logger, reverseproxy) {
 	var slidemodule = new Slidemodule(settings.slide)
 	slidemodule.init()
 	var notifications = new Notifications()
+	var ipfs = new Ipfs()
 
 	var torapplications = new TorControl(settings.tor, self)
 
@@ -93,7 +95,7 @@ var Proxy = function (settings, manage, test, logger, reverseproxy) {
 		wss, server, pocketnet, nodeControl,
 		remote, firebase, nodeManager, wallet,
 		proxies, exchanges, peertube, bots,
-		aTransactions, miniapp,
+		aTransactions, miniapp, ipfs,
 		systemnotify, notifications,
 		logger,
 		translateapi,
@@ -2754,6 +2756,8 @@ var Proxy = function (settings, manage, test, logger, reverseproxy) {
 	};
 
 	peertube.extendApi(self.api.peertube, server.cache)
+
+	_.extend(self.api, ipfs.api)
 
 	self.wallet.events()
 

@@ -478,7 +478,51 @@ var uploadpeertube = (function () {
 					}
 				}
 
-				if (transcoded) {
+				var useIpfs = (ed && ed.ipfsUpload) || self.app.ipfsUploadEnabled;
+
+			if (useIpfs) {
+
+				var videoFileUpload = evt.target.files[0];
+				var ipfsClient = typeof IpfsClient !== 'undefined' ? IpfsClient : null;
+
+				uploading = true;
+				processing(true);
+
+				var ipfsPromise;
+
+				if (ipfsClient) {
+					var tmpPath = videoFile.path || videoFile.name;
+					ipfsPromise = ipfsClient.addFile(tmpPath).then(function(r) {
+						return {
+							cid: r.cid,
+							url: 'ipfs://' + r.cid,
+						};
+					});
+				} else {
+					ipfsPromise = self.app.peertubeHandler.uploadToIpfs(videoFileUpload, function(percent) {
+						loadProgress(percent, (isAudio) ? 'uploadAudioProgress_uploading' : 'uploadVideoProgress_uploading');
+					});
+				}
+
+				ipfsPromise.then(function(result) {
+					uploading = false;
+					loadProgress(100);
+					add(result.url);
+					wndObj.close();
+				}).catch(function(e) {
+					uploading = false;
+					processing(false);
+					showerror(e.text || 'uploadVideoError');
+					sitemessage(e.text || 'IPFS upload error');
+				}).finally(function() {
+					if (el.videoInput)
+						el.videoInput.val('');
+				});
+
+				return;
+			}
+
+			if (transcoded) {
 					const { lastModified, name, type } = data.video;
 
 					const transcodedFile = {
@@ -524,19 +568,10 @@ var uploadpeertube = (function () {
 
 					data.countChunks++;
 
-					/**
-					 * TODO: Chunk size optimization is
-					 *       a complex task. Tests might
-					 *       resolve some speed issues in
-					 *       future. Must be tested...
-					 */
-
 					if (window.cordova || isMobile()) {
-						/** Mobile slow 3G chunking */
 						return 2 * 256 * 1024;
 					}
 
-					/** Regular internet (60 mbit/s) */
 					return 2 * 256 * 4096;
 				};
 
@@ -554,7 +589,6 @@ var uploadpeertube = (function () {
 					loadProgress(100);
 
 					setTimeout(() => {
-						//processing(false)
 
 						uploading = false
 						

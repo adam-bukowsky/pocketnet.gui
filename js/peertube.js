@@ -140,6 +140,14 @@ PeerTubePocketnet = function (app) {
 	};
 
 	self.parselink = function (link) {
+		if (link.indexOf('ipfs:') === 0) {
+			var cid = link.replace('ipfs://', '').replace('ipfs:', '');
+			return {
+				host: 'ipfs',
+				id: cid,
+			};
+		}
+
 		var ch = link.replace(PEERTUBE_ID, '').split(SLASH);
 
 		return {
@@ -1592,6 +1600,50 @@ PeerTubePocketnet = function (app) {
 
 
 
+	};
+
+	self.uploadToIpfs = function(file, onProgress) {
+		var proxy = app.apireq || app.url();
+
+		var url = proxy + '/ipfs/upload';
+
+		return new Promise(function(resolve, reject) {
+			var xhr = new XMLHttpRequest();
+			xhr.open('POST', url, true);
+			xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+			xhr.setRequestHeader('X-Filename', file.name);
+
+			xhr.upload.onprogress = function(e) {
+				if (onProgress && e.lengthComputable) {
+					onProgress(Math.round((e.loaded / e.total) * 100));
+				}
+			};
+
+			xhr.onload = function() {
+				if (xhr.status === 200) {
+					try {
+						var result = JSON.parse(xhr.responseText);
+						var cid = result.cid;
+
+						resolve({
+							cid: cid,
+							url: 'ipfs://' + cid,
+							gateway: (app.ipfsGateway || 'https://ipfs.io/ipfs/') + cid,
+						});
+					} catch (e) {
+						reject({ text: 'IPFS upload parse error', code: 500 });
+					}
+				} else {
+					reject({ text: 'IPFS upload failed', code: xhr.status });
+				}
+			};
+
+			xhr.onerror = function() {
+				reject({ text: 'IPFS upload network error', code: 0 });
+			};
+
+			xhr.send(file);
+		});
 	};
 
 	return self;

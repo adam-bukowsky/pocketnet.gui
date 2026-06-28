@@ -786,8 +786,9 @@ var share = (function(){
 								const ipfsIdRegex = /ipfs\/([A-z0-9]+)/;
 								const ipfsId = url.match(ipfsIdRegex)?.[1];
 
-								if (ipfsId) {
-									const ipfsUrl = `https://cloudflare-ipfs.com/ipfs/${ipfsId}`;
+	if (ipfsId) {
+	    var gw = (typeof self !== 'undefined' && self.app && self.app.ipfsGateway) ? self.app.ipfsGateway : 'https://cloudflare-ipfs.com/ipfs/';
+	    const ipfsUrl = gw + ipfsId;
 									const isVideo = await actions.isIpfsVideo(ipfsUrl);
 
 									if (isVideo) {

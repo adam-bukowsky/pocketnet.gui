@@ -245,6 +245,8 @@ Application = function (p) {
 
 		//imageServerup1 : p.imageServerup1 || 'https://'+url+':8092/up', // will be part of proxy
 		imageServerup1: p.imageServerup1 || 'https://pocketnet.app:8092/up',
+		ipfsGateway: p.ipfsGateway || 'https://ipfs.io/ipfs/',
+		ipfsUploadEnabled: p.ipfsUploadEnabled || false,
 		rtc: p.rtc || 'https://' + url + ':9001/',
 		rtcws: p.rtcws || 'wss://pocketnet.app:9090',
 		rtchttp: p.rtchttp || 'https://pocketnet.app:9091',

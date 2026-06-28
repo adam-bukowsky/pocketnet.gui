@@ -279,6 +279,33 @@ var Server = function(settings, admins, manage){
             _.each(self.proxy.api, function(pack){
                 _.each(pack, function(meta){
 
+                    if (meta.source) {
+                        if (meta.path === '/ipfs/upload') {
+                            app.post(meta.path, function(request, result){
+
+                                if(!self.listening){
+                                    result._fail('stopped', 500)
+                                    return
+                                }
+
+                                var chunks = [];
+                                request.on('data', function(chunk){ chunks.push(chunk); });
+                                request.on('end', function(){
+                                    var data = {
+                                        _raw: Buffer.concat(chunks),
+                                        filename: request.headers['x-filename'] || 'video.mp4',
+                                    };
+                                    meta.action(data, request).then(function(d){
+                                        result._success(d.data, d.code, d, meta.formatdata)
+                                    }).catch(function(e){
+                                        result._fail(e, e.code)
+                                    });
+                                });
+                            });
+                            return;
+                        }
+                    }
+
                     app.all(meta.path, self.authorization[meta.authorization || 'dummy'], function(request, result){
 
                         if(!self.listening){

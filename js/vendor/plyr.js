@@ -3773,7 +3773,7 @@ typeof navigator === "object" && (function (global, factory) {
 
       },
       ipfs: {
-        source: 'https://cloudflare-ipfs.com/ipfs/{0}'
+        source: 'https://ipfs.io/ipfs/{0}'
       },
       googleIMA: {
         sdk: 'https://imasdk.googleapis.com/js/sdkloader/ima3.js'
@@ -5963,6 +5963,8 @@ typeof navigator === "object" && (function (global, factory) {
     }
   };
 
+  var ipfsGatewayUrl = (typeof app !== 'undefined' && app && app.ipfsGateway) ? app.ipfsGateway : 'https://cloudflare-ipfs.com/ipfs/';
+
   var ipfs = {
     setup: function setup() {
       ipfs.ready.call(this);
@@ -5971,7 +5973,7 @@ typeof navigator === "object" && (function (global, factory) {
       const config = this.config;
 
       const clearIpfsId = this.media.getAttribute('data-plyr-video-id');
-      var src = format(this.config.urls.ipfs.source, clearIpfsId);
+      var src = ipfsGatewayUrl + clearIpfsId;
 
       const embedVideo = createElement('video');
       embedVideo.setAttribute('src', src);
