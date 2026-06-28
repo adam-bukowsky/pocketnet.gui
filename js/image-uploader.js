@@ -3,54 +3,79 @@ ImageUploader = function(app) {
     var self = this;
 
     // Upload an image to the right server
-    // Type can be: "peertube", "imgur" or "up1"
+    // Type can be: "ipfs", "peertube", "imgur" or "up1"
+
+    self.ipfsUploadBase64 = function(base64, filename) {
+        var proxy = app.apireq;
+        if (!proxy && app.platform && app.platform.apiproxy) {
+            proxy = 'https://' + app.platform.apiproxy.host + ':' + app.platform.apiproxy.port;
+        }
+        if (!proxy) {
+            proxy = window.location.protocol + '//' + window.location.host;
+        }
+
+        return new Promise(function(resolve, reject) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', proxy + '/ipfs/upload-base64', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    try {
+                        var body = JSON.parse(xhr.responseText);
+                        var cid = body.data && body.data.cid;
+                        if (!cid) {
+                            reject({ text: 'IPFS upload no CID', code: 500 });
+                            return;
+                        }
+                        var gateway = (app.ipfsGateway || 'https://ipfs.io/ipfs/') + cid;
+                        resolve(gateway);
+                    } catch (e) {
+                        reject({ text: 'IPFS upload parse error', code: 500 });
+                    }
+                } else {
+                    reject({ text: 'IPFS upload failed', code: xhr.status });
+                }
+            };
+
+            xhr.onerror = function() {
+                reject({ text: 'IPFS upload network error', code: 0 });
+            };
+
+            xhr.send(JSON.stringify({ base64: base64, filename: filename || 'image.png' }));
+        });
+    };
 
     self.upload = function({base64, type}){
 
         if (base64.indexOf('data:image') > -1){
 
-            // If we are in test environment, try to upload images to Peertube
-            // (fallback to Imgur if failure)
+            return self.ipfsUploadBase64(base64).catch(function(err) {
+                console.error(err);
+                return self.uploadImage({ base64 }, 'up1');
+            }).catch(function(err) {
+                console.error(err);
+                return self.uploadImage({ base64 }, 'imgur');
+            }).catch(function(err) {
+                console.error(err);
+                return self.uploadImage({ base64 }, 'peertube');
+            }).then(function(url) {
+                return Promise.resolve(url);
+            }).catch(function(err) {
+                console.error(err);
+                return Promise.reject(err);
+            });
 
-            if (1 == 1) {
-                
-                return self.uploadImage({ base64 }, 'peertube').catch(err => {
-                    console.error(err)
-                    return self.uploadImage({ base64 }, 'up1')
-                    
-                }).catch(err => {
-                    console.error(err)
-                    return self.uploadImage({ base64 }, 'imgur')
-                }).then(url => {
-                    return Promise.resolve(url)
-                }).catch(err => {
-                    console.error(err)
-                    return Promise.reject(err)
-                })
-
-            }
-            // Else, upload images to Imgur
-            else {
-
-                return self.uploadImage({ base64 }, 'imgur').catch(err => {
-                    return self.uploadImage({ base64 }, 'up1')
-                }).then(url => {
-                    return Promise.resolve(url)
-                })
-
-            }
         }
         else{
             return Promise.resolve(base64)
         }
-        
-        
-        /**/
+
     }
 
-    self.uploadImage = function({base64, type}, system = 'peertube') {
+    self.uploadImage = function({base64, type}, system) {
 
-        return new Promise((resolve, reject) => {
+        return new Promise(function(resolve, reject) {
 
             var p = {
                 type : "POST",
@@ -58,7 +83,7 @@ ImageUploader = function(app) {
                 success : resolve,
                 fail : reject
             };
-    
+
             switch(system) {
                 case 'imgur':
                     p.imgur = true;
@@ -77,15 +102,11 @@ ImageUploader = function(app) {
                     p.data.Action = "upload";
             }
 
-            // If we need to use the IP address instead of the domain name
-
             if (p.peertubeImage){
-                // Fetch Peertube server if needed
-                app.peertubeHandler.api.proxy.bestIfNeed().finally(() => {
+                app.peertubeHandler.api.proxy.bestIfNeed().finally(function() {
 
                     if(!app.options.peertubeServer){
                         reject('peertubeServer')
-
                         return
                     }
 
@@ -113,12 +134,12 @@ ImageUploader = function(app) {
                     }
 
                     app.ajax.run(p)
-                    
-                }).catch((e) => {
+
+                }).catch(function(e) {
                     reject(e)
                 });
 
-                return 
+                return
             }
 
             if (p.up1){
@@ -153,7 +174,6 @@ ImageUploader = function(app) {
                     reject(e)
                 }
             }
-                
 
             app.ajax.run(p);
         });

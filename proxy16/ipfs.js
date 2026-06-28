@@ -104,6 +104,41 @@ var Ipfs = function () {
 				});
 			},
 		},
+
+		uploadBase64: {
+			path: '/ipfs/upload-base64',
+			action: function (data, request) {
+				var raw = data.base64 || '';
+				var filename = data.filename || 'image.png';
+
+				if (!raw) {
+					return Promise.reject({ error: 'no_data', code: 400 });
+				}
+
+				var buf;
+				var mimeMatch = raw.match(/^data:([^;]+);base64,(.+)$/);
+				if (mimeMatch) {
+					buf = Buffer.from(mimeMatch[2], 'base64');
+				} else {
+					buf = Buffer.from(raw, 'base64');
+				}
+
+				if (!buf.length) {
+					return Promise.reject({ error: 'invalid_base64', code: 400 });
+				}
+
+				return self.addFile(buf, filename).then(function (result) {
+					return Promise.resolve({
+						data: {
+							cid: result.cid,
+							size: result.size,
+							gateway: gatewayUrl + result.cid,
+						},
+						code: 200,
+					});
+				});
+			},
+		},
 	};
 
 	return self;
